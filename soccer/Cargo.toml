@@ -5,5 +5,7 @@ authors = ["Yu Haidong"]
 edition = "2018"
 
 [dependencies]
+dns = { version = "0.1.0", path = "../dns" }
+
 futures = { version = "=0.3.0" }
 tokio = { version = "=0.2.0-alpha.6" }

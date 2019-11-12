@@ -4,7 +4,7 @@ use futures::future::try_join;
 
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpListener, TcpStream, UdpSocket};
 
 use std::error::Error;
 use std::net::SocketAddr;
@@ -29,20 +29,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
             recv_method_selection_message(&mut client_socket).await.unwrap();
             send_method_selection_message(&mut client_socket).await.unwrap();
 
-            let remote_dst = recv_request(&mut client_socket).await;
+            let remote_dst: Destination = recv_request(&mut client_socket).await;
             println!("remote destination: {}", remote_dst.to_str());
 
+            let remote_port = remote_dst.port();
+
+            let remote_ip_addr = resolve_domain(&remote_dst.domain()).await.unwrap();
+            println!("remote address: {}:{}", remote_ip_addr, remote_port);
 
             send_reply(&mut client_socket).await.unwrap();
 
-
-            // baidu.com 220.181.38.148
-            // qq.com 59.37.96.63
-            // cn.bing.com 202.89.233.100
-            let outbound_addr: SocketAddr = "220.181.38.148:80".parse().unwrap();
-//            let outbound_addr: SocketAddr = "59.37.96.63:80".parse().unwrap();
-//            let outbound_addr: SocketAddr = "202.89.233.100:80".parse().unwrap();
-            let remote_stream = TcpStream::connect(&outbound_addr)
+            let remote_addr = SocketAddr::new(remote_ip_addr, remote_port);
+            let remote_stream = TcpStream::connect(remote_addr)
                 .await
                 .expect("failed to connect to remote");
 
@@ -152,6 +150,31 @@ async fn send_reply(socket: &mut TcpStream) -> std::io::Result<()> {
     ];
 
     socket.write_all(&reply).await
+}
+
+async fn resolve_domain(domain: &str) -> std::io::Result<std::net::IpAddr> {
+    let request_bytes = dns::encode_request(domain).unwrap();
+
+    let local_addr = "0.0.0.0:0";
+    let remote_addr = "8.8.8.8:53";
+//    let remote_addr = "114.114.114.114:53";
+    let mut sock = UdpSocket::bind(local_addr).await?;
+
+    let _send_size = sock.send_to(&request_bytes, remote_addr).await?;
+
+    let mut resp_buf = [0u8; 1000];
+    let response_size = sock.recv(&mut resp_buf).await?;
+
+    let response_bytes = &resp_buf[0..response_size];
+
+    println!("{}", response_bytes.len());
+    let resp = dns::decode_response(response_bytes)?;
+
+    let last_addr = resp.last_address().unwrap();
+
+    let ip_addr = std::net::IpAddr::from(std::net::Ipv4Addr::from(last_addr));
+
+    Ok(ip_addr)
 }
 
 async fn proxy(mut client: TcpStream, mut remote: TcpStream) {
