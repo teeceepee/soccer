@@ -1,13 +1,9 @@
 [package]
-name = "soccer"
+name = "transfer"
 version = "0.1.0"
 authors = ["Yu Haidong"]
 edition = "2018"
 
 [dependencies]
-dns = { version = "0.1.0", path = "../dns" }
-transfer = { version = "0.1.0", path = "../transfer" }
-
-bytes = "=0.4.12"
 futures = { version = "=0.3.0" }
 tokio = { version = "=0.2.0-alpha.6" }

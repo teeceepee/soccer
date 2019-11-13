@@ -2,9 +2,14 @@
 
 ## 测试
 
-服务端
+soccer 端
 ``` 
-cargo run
+cargo run --bin soccer
+```
+
+goal 端
+```
+cargo run --bin goal 
 ```
 
 客户端

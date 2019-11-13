@@ -2,5 +2,7 @@
 
 members = [
     "dns",
+    "goal",
     "soccer",
+    "transfer",
 ]

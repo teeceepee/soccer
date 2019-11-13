@@ -1,10 +1,9 @@
 // https://www.ietf.org/rfc/rfc1928.txt
 
-use futures::future::try_join;
-
+use bytes::{BytesMut, BufMut};
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream, UdpSocket};
+use tokio::net::{TcpListener, TcpStream};
 
 use std::error::Error;
 use std::net::SocketAddr;
@@ -30,22 +29,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
             send_method_selection_message(&mut client_socket).await.unwrap();
 
             let remote_dst: Destination = recv_request(&mut client_socket).await;
-            println!("remote destination: {}", remote_dst.to_str());
-
-            let remote_port = remote_dst.port();
-
-            let remote_ip_addr = resolve_domain(&remote_dst.domain()).await.unwrap();
-            println!("remote address: {}:{}", remote_ip_addr, remote_port);
+            let dest_str = remote_dst.to_str();
+            println!("destination: {}", dest_str);
 
             send_reply(&mut client_socket).await.unwrap();
 
-            let remote_addr = SocketAddr::new(remote_ip_addr, remote_port);
-            let remote_stream = TcpStream::connect(remote_addr)
+            let goal_addr = "127.0.0.1:18030";
+            let goal_address = goal_addr.parse::<SocketAddr>().unwrap();
+            let mut goal_stream = TcpStream::connect(goal_address)
                 .await
-                .expect("failed to connect to remote");
+                .expect("Failed to connect to goal");
 
-            proxy(client_socket, remote_stream).await;
-            println!("Proxy Finished");
+
+            let mut buf = BytesMut::with_capacity(1024);
+            buf.put_u16_be(dest_str.len() as u16);
+            buf.put(&dest_str);
+
+            println!("buf: {:?}", buf);
+            goal_stream.write_all(&buf).await.unwrap();
+
+            transfer::transfer(client_socket, goal_stream).await;
+            println!("Transfer Finished");
         });
     }
 }
@@ -150,84 +154,4 @@ async fn send_reply(socket: &mut TcpStream) -> std::io::Result<()> {
     ];
 
     socket.write_all(&reply).await
-}
-
-async fn resolve_domain(domain: &str) -> std::io::Result<std::net::IpAddr> {
-    let request_bytes = dns::encode_request(domain).unwrap();
-
-    let local_addr = "0.0.0.0:0";
-    let remote_addr = "8.8.8.8:53";
-//    let remote_addr = "114.114.114.114:53";
-    let mut sock = UdpSocket::bind(local_addr).await?;
-
-    let _send_size = sock.send_to(&request_bytes, remote_addr).await?;
-
-    let mut resp_buf = [0u8; 1000];
-    let response_size = sock.recv(&mut resp_buf).await?;
-
-    let response_bytes = &resp_buf[0..response_size];
-
-    println!("{}", response_bytes.len());
-    let resp = dns::decode_response(response_bytes)?;
-
-    let last_addr = resp.last_address().unwrap();
-
-    let ip_addr = std::net::IpAddr::from(std::net::Ipv4Addr::from(last_addr));
-
-    Ok(ip_addr)
-}
-
-async fn proxy(mut client: TcpStream, mut remote: TcpStream) {
-    let (mut client_read_half, mut client_write_half) = client.split();
-    let (mut remote_read_half, mut remote_write_half) = remote.split();
-    let client_to_remote = client_read_half.copy(&mut remote_write_half);
-    let remote_to_client = remote_read_half.copy(&mut client_write_half);
-
-    try_join(client_to_remote, remote_to_client)
-        .await
-        .expect("try_join 出错");
-    //futures::future::try_select(client_to_remote, remote_to_client).await;
-}
-
-async fn _proxy_manually(mut client: TcpStream, mut remote: TcpStream) {
-    let mut buf = [0; 1024];
-    let n = client
-        .read(&mut buf)
-        .await
-        .expect("failed to read data from remote");
-
-    let request_bytes = &buf[0..n];
-    let req = String::from_utf8_lossy(request_bytes);
-
-    let req_s = req.replace("\r\n", "<CR><LF>\r\n");
-    println!("\n{}", req_s);
-
-    remote
-        .write_all(request_bytes)
-        .await
-        .expect("failed to write data to remote");
-
-    loop {
-        let read_len = remote
-            .read(&mut buf)
-            .await
-            .expect("失败：failed to read data from remote");
-
-        println!("长度：{}", read_len);
-
-        if read_len == 0 {
-            break;
-        }
-
-        let response_bytes = &buf[0..read_len];
-        let resp = String::from_utf8_lossy(response_bytes);
-        let resp_s = resp.replace("\r\n", "<CR><LF>\r\n");
-        println!("接收到的：\n{}", resp_s);
-        println!("====");
-
-        client
-            .write_all(response_bytes)
-            .await
-            .expect("failed to write data to remote");
-    }
 }
