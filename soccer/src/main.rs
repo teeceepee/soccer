@@ -12,7 +12,8 @@ use soccer::Destination;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let addr = std::env::args().nth(1).unwrap_or("127.0.0.1:8080".to_string());
+    let server_address = std::env::args().nth(1).unwrap_or("127.0.0.1:18030".to_string());
+    let addr = "127.0.0.1:8080".to_string();
     let addr = addr.parse::<SocketAddr>()?;
 
     let mut listener = TcpListener::bind(&addr)
@@ -24,6 +25,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let (mut client_socket, client_addr) = listener.accept().await?;
         println!("\nAccept a connection from {}", client_addr);
 
+        let goal_addr = server_address.clone();
+
         tokio::spawn(async move {
             recv_method_selection_message(&mut client_socket).await.unwrap();
             send_method_selection_message(&mut client_socket).await.unwrap();
@@ -34,7 +37,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             send_reply(&mut client_socket).await.unwrap();
 
-            let goal_addr = "127.0.0.1:18030";
             let goal_address = goal_addr.parse::<SocketAddr>().unwrap();
             let mut goal_stream = TcpStream::connect(goal_address)
                 .await

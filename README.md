@@ -4,7 +4,7 @@
 
 soccer 端
 ``` 
-cargo run --bin soccer
+cargo run --bin soccer 127.0.0.1:18030
 ```
 
 goal 端
