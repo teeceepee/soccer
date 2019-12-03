@@ -11,12 +11,16 @@ impl Destination {
         }
     }
 
-    pub fn domain(&self) -> String {
-        String::from_utf8_lossy(&self.address).to_string()
+    pub fn address(&self) -> &[u8] {
+        &self.address.as_slice()
     }
 
     pub fn port(&self) -> u16 {
         self.port
+    }
+
+    pub fn domain(&self) -> String {
+        String::from_utf8_lossy(&self.address).to_string()
     }
 
     pub fn to_str(&self) -> String {

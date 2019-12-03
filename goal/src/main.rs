@@ -25,24 +25,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         tokio::spawn(async move {
             // 读协议头
+            let mut port_buf = [0u8; 2];
+            soccer_socket.read_exact(&mut port_buf).await.unwrap();
+
+            let port = BigEndian::read_u16(&port_buf);
+            println!("port: {}", port);
+
+
+            let mut reserved_buf = [0u8; 2];
+            soccer_socket.read_exact(&mut reserved_buf).await.unwrap();
+            let reserved = BigEndian::read_u16(&reserved_buf);
+            println!("reserved: {}", reserved);
+
+
             let mut len_buf = [0u8; 2];
             soccer_socket.read_exact(&mut len_buf).await.unwrap();
-
             let len = BigEndian::read_u16(&len_buf);
             println!("len: {}", len);
+
 
             let mut buf = BytesMut::with_capacity(len as usize);
             buf.resize(len as usize, 0);
             soccer_socket.read_exact(&mut buf).await.unwrap();
 
-            let dest_str = String::from_utf8_lossy(&buf).to_string();
-            println!("dest_str: {}", dest_str);
-
-            let parts: Vec<&str> = dest_str.split(":").collect();
+            let domain = String::from_utf8_lossy(&buf).to_string();
+            println!("domain: {}", domain);
 
             // 解析目标域名和目标端口
-            let dest_domain: String = parts[0].to_string();
-            let dest_port = parts[1].parse::<u16>().unwrap();
+            let dest_domain: String = domain;
+            let dest_port = port;
 
             let dest_ip_addr = resolve::resolve_domain(&dest_domain).await.unwrap();
 

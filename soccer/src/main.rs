@@ -41,9 +41,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .expect("Failed to connect to goal");
 
 
-            let mut buf = BytesMut::with_capacity(1024);
-            buf.put_u16_be(dest_str.len() as u16);
-            buf.put(&dest_str);
+            let buf: Vec<u8> = encode_request_header(&remote_dst);
+
 
             println!("buf: {:?}", buf);
             goal_stream.write_all(&buf).await.unwrap();
@@ -52,6 +51,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("Transfer Finished");
         });
     }
+}
+
+fn encode_request_header(remote_dst: &Destination) -> Vec<u8> {
+    let mut buf: Vec<u8> = Vec::with_capacity(100);
+
+    // 2 bytes, port
+    buf.put_u16_be(remote_dst.port());
+
+    // 2 bytes, reserved
+    buf.put_u16_be(0);
+
+    // 2 bytes, domain length
+    buf.put_u16_be(remote_dst.address().len() as u16);
+
+    // n bytes, domain
+    for &b in remote_dst.address() {
+        buf.put_u8(b);
+    }
+
+    buf
 }
 
 // +----+----------+----------+
