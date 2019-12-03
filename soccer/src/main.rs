@@ -1,6 +1,6 @@
 // https://www.ietf.org/rfc/rfc1928.txt
 
-use bytes::{BytesMut, BufMut};
+use bytes::{BufMut};
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("buf: {:?}", buf);
             goal_stream.write_all(&buf).await.unwrap();
 
-            transfer::transfer(client_socket, goal_stream).await;
+            transfer::bridge_soccer_goal(client_socket, goal_stream, transfer::SUGAR).await;
             println!("Transfer Finished");
         });
     }

@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .await
                 .expect("Failed to connect to destination");
 
-            transfer::transfer(soccer_socket, dest_stream).await;
+            transfer::bridge_goal_dest(soccer_socket, dest_stream, transfer::SUGAR).await;
             println!("Transfer finished");
         });
     }

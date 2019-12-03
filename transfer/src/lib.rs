@@ -1,58 +1,45 @@
-use futures::future;
-use tokio::io;
-use tokio::net::{TcpStream};
+mod byte_shift;
+mod decode;
+mod encode;
 
-pub async fn transfer(mut left: TcpStream, mut right: TcpStream) {
+use futures::future;
+use tokio::net::TcpStream;
+
+pub const SUGAR: u8 = 251;
+
+// client <=> goal
+pub async fn bridge_soccer_goal(mut left: TcpStream, mut right: TcpStream, sugar: u8) {
     let (mut left_read_half, mut left_write_half) = left.split();
     let (mut right_read_half, mut right_write_half) = right.split();
-    let left_to_right = io::copy(&mut left_read_half, &mut right_write_half);
-    let right_to_left = io::copy(&mut right_read_half, &mut left_write_half);
+    let left_to_right = encode::encode(&mut left_read_half, &mut right_write_half, sugar);
+    let right_to_left = decode::decode(&mut right_read_half, &mut left_write_half, sugar);
 
     future::try_join(left_to_right, right_to_left)
         .await
         .expect("try_join 出错");
-    //futures::future::try_select(left_to_right, right_to_left).await;
 }
 
-//async fn _proxy_manually(mut client: TcpStream, mut remote: TcpStream) {
-//    let mut buf = [0; 1024];
-//    let n = client
-//        .read(&mut buf)
+// soccer <=> dest
+pub async fn bridge_goal_dest(mut left: TcpStream, mut right: TcpStream, sugar: u8) {
+    let (mut left_read_half, mut left_write_half) = left.split();
+    let (mut right_read_half, mut right_write_half) = right.split();
+    let left_to_right = decode::decode(&mut left_read_half, &mut right_write_half, sugar);
+    let right_to_left = encode::encode(&mut right_read_half, &mut left_write_half, sugar);
+
+    future::try_join(left_to_right, right_to_left)
+        .await
+        .expect("try_join 出错");
+}
+
+
+//pub async fn transfer(mut left: TcpStream, mut right: TcpStream) {
+//    let (mut left_read_half, mut left_write_half) = left.split();
+//    let (mut right_read_half, mut right_write_half) = right.split();
+//    let left_to_right = tokio::io::copy(&mut left_read_half, &mut right_write_half);
+//    let right_to_left = tokio::io::copy(&mut right_read_half, &mut left_write_half);
+//
+//    future::try_join(left_to_right, right_to_left)
 //        .await
-//        .expect("failed to read data from remote");
-//
-//    let request_bytes = &buf[0..n];
-//    let req = String::from_utf8_lossy(request_bytes);
-//
-//    let req_s = req.replace("\r\n", "<CR><LF>\r\n");
-//    println!("\n{}", req_s);
-//
-//    remote
-//        .write_all(request_bytes)
-//        .await
-//        .expect("failed to write data to remote");
-//
-//    loop {
-//        let read_len = remote
-//            .read(&mut buf)
-//            .await
-//            .expect("失败：failed to read data from remote");
-//
-//        println!("长度：{}", read_len);
-//
-//        if read_len == 0 {
-//            break;
-//        }
-//
-//        let response_bytes = &buf[0..read_len];
-//        let resp = String::from_utf8_lossy(response_bytes);
-//        let resp_s = resp.replace("\r\n", "<CR><LF>\r\n");
-//        println!("接收到的：\n{}", resp_s);
-//        println!("====");
-//
-//        client
-//            .write_all(response_bytes)
-//            .await
-//            .expect("failed to write data to remote");
-//    }
+//        .expect("try_join 出错");
+//    //futures::future::try_select(left_to_right, right_to_left).await;
 //}
