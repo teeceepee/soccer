@@ -1,12 +1,12 @@
 use futures::future;
-use tokio::io::AsyncReadExt;
+use tokio::io;
 use tokio::net::{TcpStream};
 
 pub async fn transfer(mut left: TcpStream, mut right: TcpStream) {
     let (mut left_read_half, mut left_write_half) = left.split();
     let (mut right_read_half, mut right_write_half) = right.split();
-    let left_to_right = left_read_half.copy(&mut right_write_half);
-    let right_to_left = right_read_half.copy(&mut left_write_half);
+    let left_to_right = io::copy(&mut left_read_half, &mut right_write_half);
+    let right_to_left = io::copy(&mut right_read_half, &mut left_write_half);
 
     future::try_join(left_to_right, right_to_left)
         .await

@@ -9,5 +9,5 @@ dns = { version = "0.1.0", path = "../dns" }
 transfer = { version = "0.1.0", path = "../transfer" }
 
 bytes = "=0.4.12"
-futures = { version = "=0.3.0" }
-tokio = { version = "=0.2.0-alpha.6" }
+futures = { version = "0.3.1" }
+tokio = { version = "0.2.2", features = ["full"] }
