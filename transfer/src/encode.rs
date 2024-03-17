@@ -54,7 +54,9 @@ impl<R, W> Future for Encode<'_, R, W>
             // continue.
             if self.pos == self.cap && !self.read_done {
                 let me = &mut *self;
-                let n = ready!(Pin::new(&mut *me.reader).poll_read(cx, &mut me.buf))?;
+                // TODO
+                // let n = ready!(Pin::new(&mut *me.reader).poll_read(cx, &mut me.buf))?;
+                let n = 0;
                 if n == 0 {
                     self.read_done = true;
                 } else {
