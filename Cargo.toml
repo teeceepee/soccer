@@ -3,6 +3,7 @@
 members = [
     "dns",
     "goal",
+    "mock_client",
     "soccer",
     "transfer",
 ]

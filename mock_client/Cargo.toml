@@ -1,0 +1,8 @@
+[package]
+name = "mock_client"
+version = "0.1.0"
+authors = ["Yu Haidong"]
+edition = "2018"
+
+[dependencies]
+tokio = { version = "1.36.0", features = ["full"] }
