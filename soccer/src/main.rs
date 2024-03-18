@@ -27,32 +27,34 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         let goal_addr = server_address.clone();
 
-        tokio::spawn(async move {
-            recv_method_selection_message(&mut client_socket).await.unwrap();
-            send_method_selection_message(&mut client_socket).await.unwrap();
-
-            let remote_dst: Destination = recv_request(&mut client_socket).await;
-            let dest_str = remote_dst.to_str();
-            println!("destination: {}", dest_str);
-
-            send_reply(&mut client_socket).await.unwrap();
-
-            let goal_address = goal_addr.parse::<SocketAddr>().unwrap();
-            let mut goal_stream = TcpStream::connect(goal_address)
-                .await
-                .expect("Failed to connect to goal");
-
-
-            let buf: Vec<u8> = encode_request_header(&remote_dst);
-
-
-            println!("buf: {:?}", buf);
-            goal_stream.write_all(&buf).await.unwrap();
-
-            transfer::bridge_soccer_goal(client_socket, goal_stream, transfer::SUGAR).await;
-            println!("Transfer Finished");
-        });
+        tokio::spawn(process(client_socket, goal_addr));
     }
+}
+
+async fn process(mut client_socket: TcpStream, goal_addr: String) {
+    recv_method_selection_message(&mut client_socket).await.unwrap();
+    send_method_selection_message(&mut client_socket).await.unwrap();
+
+    let remote_dst: Destination = recv_request(&mut client_socket).await;
+    let dest_str = remote_dst.to_str();
+    println!("destination: {}", dest_str);
+
+    send_reply(&mut client_socket).await.unwrap();
+
+    let goal_address = goal_addr.parse::<SocketAddr>().unwrap();
+    let mut goal_stream = TcpStream::connect(goal_address)
+        .await
+        .expect("Failed to connect to goal");
+
+
+    let buf: Vec<u8> = encode_request_header(&remote_dst);
+
+
+    println!("buf: {:?}", buf);
+    goal_stream.write_all(&buf).await.unwrap();
+
+    transfer::bridge_soccer_goal(client_socket, goal_stream, transfer::SUGAR).await;
+    println!("Transfer Finished");
 }
 
 fn encode_request_header(remote_dst: &Destination) -> Vec<u8> {
