@@ -47,5 +47,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // TODO receive response
 
+    let mut buf = vec![0; 1000];
+
+    loop {
+        match soccer_stream.read(&mut buf).await {
+            Ok(0) => {
+                println!("Ok(0)");
+                break
+            }
+            Ok(n) => {
+                println!("n: {}", n);
+                let s = String::from_utf8_lossy(&buf[0..n]);
+                println!("{}", s);
+            }
+            Err(_) => {
+                println!("soccer_stream.read err: Err(_)");
+                break
+            }
+        }
+    }
+
     Ok(())
 }

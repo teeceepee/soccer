@@ -2,8 +2,65 @@ mod byte_shift;
 mod decode;
 mod encode;
 
-use futures::future;
+use futures::{future, Sink, SinkExt, Stream, StreamExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio_tungstenite::tungstenite::{Error, Message};
+
+type WsError = Error;
+
+pub async fn ws_to_tcp<R, W>(mut ws_read: R, mut tcp_write: W)
+where
+    R: Stream<Item=Result<Message, WsError>> + Unpin,
+    W: AsyncWrite + Unpin,
+{
+    while let Some(msg_ret) = StreamExt::next(&mut ws_read).await {
+        let msg = msg_ret.unwrap();
+        match msg {
+            Message::Close(_) => {
+                println!("Closed by CLOSE message");
+                break
+            }
+            Message::Binary(payload) => {
+                AsyncWriteExt::write_all(&mut tcp_write, &payload).await.unwrap();
+            }
+            unknown_msg => {
+                println!("Closed by UNKNOWN message, {:?}", unknown_msg);
+                break
+            }
+        }
+
+        println!("Waiting next ws message...");
+    }
+    println!("ws_to_tcp finished");
+}
+
+pub async fn tcp_to_ws<R, W>(mut tcp_read: R, mut ws_write: W)
+where
+    R: AsyncRead + Unpin,
+    W: Sink<Message, Error=WsError> + Unpin,
+{
+    let mut buf = vec![0; 100];
+    loop {
+        match AsyncReadExt::read(&mut tcp_read, &mut buf).await {
+            Ok(0) => {
+                println!("tcp read close: Ok(0)");
+                break
+            }
+            Ok(n) => {
+                println!("tcp read n: {}", n);
+                let msg = Message::binary(&buf[0..n]);
+                SinkExt::send(&mut ws_write, msg).await.unwrap();
+            }
+            Err(e) => {
+                // 连接到 baidu.com 可能会出现连接重置错误：
+                // Connection reset by peer (os error 54)
+                println!("tcp read err: {}", e);
+                break
+            }
+        }
+    }
+}
 
 pub const SUGAR: u8 = 251;
 

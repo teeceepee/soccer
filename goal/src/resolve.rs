@@ -4,9 +4,9 @@ pub async fn resolve_domain(domain: &str) -> std::io::Result<std::net::IpAddr> {
     let request_bytes = dns::encode_request(domain).unwrap();
 
     let local_addr = "0.0.0.0:0";
-    let remote_addr = "8.8.8.8:53";
-//    let remote_addr = "114.114.114.114:53";
-    let mut sock = UdpSocket::bind(local_addr).await?;
+    // let remote_addr = "1.1.1.1:53";
+    let remote_addr = "114.114.114.114:53";
+    let sock = UdpSocket::bind(local_addr).await?;
 
     let _send_size = sock.send_to(&request_bytes, remote_addr).await?;
 

@@ -1,10 +1,13 @@
 // https://www.ietf.org/rfc/rfc1928.txt
 
+extern crate tokio;
+extern crate tokio_tungstenite;
+
 use bytes::{BufMut};
-use tokio;
+use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-
+use tokio_tungstenite::tungstenite::Message;
 use std::error::Error;
 use std::net::SocketAddr;
 
@@ -16,13 +19,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let addr = "127.0.0.1:8080".to_string();
     let addr = addr.parse::<SocketAddr>()?;
 
-    let mut listener = TcpListener::bind(&addr)
+    let listener = TcpListener::bind(&addr)
         .await
         .expect("监听失败");
     println!("Listening on: {}, pid: {}", addr, std::process::id());
 
     loop {
-        let (mut client_socket, client_addr) = listener.accept().await?;
+        let (client_socket, client_addr) = listener.accept().await?;
         println!("\nAccept a connection from {}", client_addr);
 
         let goal_addr = server_address.clone();
@@ -41,20 +44,24 @@ async fn process(mut client_socket: TcpStream, goal_addr: String) {
 
     send_reply(&mut client_socket).await.unwrap();
 
-    let goal_address = goal_addr.parse::<SocketAddr>().unwrap();
-    let mut goal_stream = TcpStream::connect(goal_address)
-        .await
-        .expect("Failed to connect to goal");
+    let addr = ["ws://".to_string(), goal_addr].join("");
+    let (goal_stream, _resp) = tokio_tungstenite::connect_async(addr).await.unwrap();
+    let (mut goal_write, goal_read) = goal_stream.split();
+    let (client_read, client_write) = client_socket.into_split();
 
-
+    // Send request header
     let buf: Vec<u8> = encode_request_header(&remote_dst);
-
-
     println!("buf: {:?}", buf);
-    goal_stream.write_all(&buf).await.unwrap();
+    let request_header_msg = Message::binary(buf);
+    goal_write.send(request_header_msg).await.unwrap();
 
-    transfer::bridge_soccer_goal(client_socket, goal_stream, transfer::SUGAR).await;
-    println!("Transfer Finished");
+    // goal ==> client
+    tokio::spawn(async move {
+        transfer::ws_to_tcp(goal_read, client_write).await;
+    });
+
+    // client ==> goal
+    transfer::tcp_to_ws(client_read, goal_write).await;
 }
 
 fn encode_request_header(remote_dst: &Destination) -> Vec<u8> {
