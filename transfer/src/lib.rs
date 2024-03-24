@@ -17,12 +17,18 @@ where
     while let Some(msg_ret) = StreamExt::next(&mut ws_read).await {
         let msg = msg_ret.unwrap();
         match msg {
-            Message::Close(_) => {
-                println!("Closed by CLOSE message");
-                break
+            Message::Text(cmd) => {
+                if cmd == "half_close" {
+                    println!("Received half_close command from ws");
+                    break
+                }
             }
             Message::Binary(payload) => {
                 AsyncWriteExt::write_all(&mut tcp_write, &payload).await.unwrap();
+            }
+            Message::Close(_) => {
+                println!("Closed by CLOSE message");
+                break
             }
             unknown_msg => {
                 println!("Closed by UNKNOWN message, {:?}", unknown_msg);
@@ -32,6 +38,10 @@ where
 
         println!("Waiting next ws message...");
     }
+
+    // ws 端已无数据，不会再向 `tcp_write` 写入数据，因此关闭 `tcp_write`，
+    // 同时以此通知 TCP 连接的另一端。
+    let _ = tcp_write.shutdown().await;
     println!("ws_to_tcp finished");
 }
 
@@ -44,6 +54,9 @@ where
     loop {
         match AsyncReadExt::read(&mut tcp_read, &mut buf).await {
             Ok(0) => {
+                // when read() returns Ok(0), this signifies that the stream is closed.
+                // Any further calls to read() will complete immediately with Ok(0).
+                // With TcpStream instances, this signifies that the read half of the socket is closed.
                 println!("tcp read close: Ok(0)");
                 break
             }
@@ -60,6 +73,11 @@ where
             }
         }
     }
+
+    let half_close_msg = Message::text("half_close");
+    SinkExt::send(&mut ws_write, half_close_msg).await.unwrap();
+
+    println!("tcp_to_ws finished");
 }
 
 pub const SUGAR: u8 = 251;

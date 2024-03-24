@@ -56,12 +56,16 @@ async fn process(mut client_socket: TcpStream, goal_addr: String) {
     goal_write.send(request_header_msg).await.unwrap();
 
     // goal ==> client
-    tokio::spawn(async move {
+    let goal_to_client = tokio::spawn(async move {
         transfer::ws_to_tcp(goal_read, client_write).await;
     });
 
     // client ==> goal
-    transfer::tcp_to_ws(client_read, goal_write).await;
+    let client_to_goal = tokio::spawn(async move {
+        transfer::tcp_to_ws(client_read, goal_write).await;
+    });
+
+    let _ = tokio::join!(goal_to_client, client_to_goal);
 }
 
 fn encode_request_header(remote_dst: &Destination) -> Vec<u8> {

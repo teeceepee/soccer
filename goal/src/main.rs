@@ -61,12 +61,16 @@ async fn process(mut ws: WebSocketStream<TcpStream>) {
     let (soccer_write, soccer_read) = ws.split();
 
     // dest ==> soccer
-    tokio::spawn(async move {
+    let dest_to_soccer = tokio::spawn(async move {
         transfer::tcp_to_ws(dest_read, soccer_write).await;
     });
 
     // soccer ===> dest
-    transfer::ws_to_tcp(soccer_read, dest_write).await;
+    let soccer_to_dest = tokio::spawn(async move {
+        transfer::ws_to_tcp(soccer_read, dest_write).await;
+    });
+
+    let _ = tokio::join!(dest_to_soccer, soccer_to_dest);
 }
 
 fn decode_request_header(request_header: &[u8]) -> std::io::Result<(String, u16)> {
