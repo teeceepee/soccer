@@ -10,11 +10,14 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use std::error::Error;
 use std::net::SocketAddr;
+use log::info;
 
 use soccer::Destination;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let _ = env_logger::try_init();
+
     let server_address = std::env::args().nth(1).unwrap_or("127.0.0.1:18030".to_string());
     let addr = "127.0.0.1:8080".to_string();
     let addr = addr.parse::<SocketAddr>()?;
@@ -22,11 +25,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(&addr)
         .await
         .expect("监听失败");
-    println!("Listening on: {}, pid: {}", addr, std::process::id());
+    info!("Listening on: {}, pid: {}", addr, std::process::id());
 
     loop {
         let (client_socket, client_addr) = listener.accept().await?;
-        println!("\nAccept a connection from {}", client_addr);
+        info!("Accept a connection from {}", client_addr);
 
         let goal_addr = server_address.clone();
 

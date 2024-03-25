@@ -1,8 +1,10 @@
 mod byte_shift;
 mod decode;
 mod encode;
+pub mod tcp_accept;
 
 use futures::{future, Sink, SinkExt, Stream, StreamExt};
+use log::debug;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::{Error, Message};
@@ -19,7 +21,7 @@ where
         match msg {
             Message::Text(cmd) => {
                 if cmd == "half_close" {
-                    println!("Received half_close command from ws");
+                    debug!("Received half_close command from ws");
                     break
                 }
             }
@@ -27,11 +29,11 @@ where
                 AsyncWriteExt::write_all(&mut tcp_write, &payload).await.unwrap();
             }
             Message::Close(_) => {
-                println!("Closed by CLOSE message");
+                debug!("Closed by CLOSE message");
                 break
             }
             unknown_msg => {
-                println!("Closed by UNKNOWN message, {:?}", unknown_msg);
+                debug!("Closed by UNKNOWN message, {:?}", unknown_msg);
                 break
             }
         }
@@ -57,24 +59,25 @@ where
                 // when read() returns Ok(0), this signifies that the stream is closed.
                 // Any further calls to read() will complete immediately with Ok(0).
                 // With TcpStream instances, this signifies that the read half of the socket is closed.
-                println!("tcp read close: Ok(0)");
+                debug!("tcp read close: Ok(0)");
                 break
             }
             Ok(n) => {
-                println!("tcp read n: {}", n);
+                debug!("tcp read n: {}", n);
                 let msg = Message::binary(&buf[0..n]);
                 SinkExt::send(&mut ws_write, msg).await.unwrap();
             }
             Err(e) => {
                 // 连接到 baidu.com 可能会出现连接重置错误：
                 // Connection reset by peer (os error 54)
-                println!("tcp read err: {}", e);
+                debug!("tcp read err: {}", e);
                 break
             }
         }
     }
 
     let half_close_msg = Message::text("half_close");
+    // Os { code: 32, kind: BrokenPipe, message: "Broken pipe" }
     SinkExt::send(&mut ws_write, half_close_msg).await.unwrap();
 
     println!("tcp_to_ws finished");
