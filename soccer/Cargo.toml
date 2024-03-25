@@ -8,9 +8,9 @@ edition = "2018"
 dns = { version = "0.1.0", path = "../dns" }
 transfer = { version = "0.1.0", path = "../transfer" }
 
-bytes = "=0.4.12"
-env_logger = "0.11.2"
-futures = { version = "0.3.30" }
-log = "0.4.21"
-tokio = { version = "1.36.0", features = ["full"] }
-tokio-tungstenite = "0.21.0"
+bytes = { workspace = true }
+env_logger = { workspace = true }
+futures = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
