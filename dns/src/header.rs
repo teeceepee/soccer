@@ -1,4 +1,5 @@
-use byteorder::{ReadBytesExt, WriteBytesExt, BE};
+use byteorder::{WriteBytesExt, BE};
+use bytes::Buf;
 use std::io::Cursor;
 
 // 12 bytes
@@ -36,12 +37,13 @@ impl Header {
     }
 
     pub fn parse_from_reader(rdr: &mut Cursor<&[u8]>) -> std::io::Result<Self> {
-        let id = rdr.read_u16::<BE>()?;
-        let unparsed = rdr.read_u16::<BE>()?;
-        let qdcount = rdr.read_u16::<BE>()?;
-        let ancount = rdr.read_u16::<BE>()?;
-        let nscount = rdr.read_u16::<BE>()?;
-        let arcount = rdr.read_u16::<BE>()?;
+        let id = Buf::get_u16(rdr);
+        let unparsed = Buf::get_u16(rdr);
+        let qdcount = Buf::get_u16(rdr);
+        let ancount = Buf::get_u16(rdr);
+        let nscount = Buf::get_u16(rdr);
+        let arcount = Buf::get_u16(rdr);
+
 
         let h = Self {
             id,
