@@ -138,6 +138,11 @@ async fn ws_accept(tcp_stream: TcpStream) -> Option<WebSocketStream<TcpStream>> 
         if path == "/goal" {
             Ok(resp)
         } else {
+            // https://datatracker.ietf.org/doc/html/rfc6455#section-1.3
+            // https://datatracker.ietf.org/doc/html/rfc6455#section-4.2.2
+            //
+            // Any status code other than 101 indicates that the WebSocket handshake
+            // has not completed and that the semantics of HTTP still apply.
             let err_resp = HttpResponse::builder()
                 .status(404)
                 .body(None)
