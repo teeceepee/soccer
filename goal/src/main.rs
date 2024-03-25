@@ -1,7 +1,7 @@
 extern crate tokio;
 extern crate tokio_tungstenite;
 
-use byteorder::{ReadBytesExt, BE};
+use bytes::{Buf, BytesMut};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::WebSocketStream;
@@ -94,25 +94,28 @@ async fn process(soccer_socket: TcpStream) {
 }
 
 fn decode_request_header(request_header: &[u8]) -> std::io::Result<(String, u16)> {
-    let mut rdr = Cursor::new(request_header);
+    let mut buf = BytesMut::from(request_header);
 
-    let port = ReadBytesExt::read_u16::<BE>(&mut rdr)?;
+    let port = Buf::get_u16(&mut buf);
     println!("port: {}", port);
 
-    let _reserved = ReadBytesExt::read_u16::<BE>(&mut rdr)?;
+    let _reserved = Buf::get_u16(&mut buf);
     println!("reserved: {}", _reserved);
 
-    let len = ReadBytesExt::read_u16::<BE>(&mut rdr)?;
+    let len = Buf::get_u16(&mut buf) as usize;
     println!("len: {}", len);
 
-    let mut buf = Vec::with_capacity(len as usize);
-    buf.resize(len as usize, 0);
-    std::io::Read::read_exact(&mut rdr, &mut buf)?;
-
-    let domain = String::from_utf8_lossy(&buf).to_string();
+    // 如果使用 `Vec<u8>` 作为缓冲区，则需要分配并初始化内存，
+    // 而使用 `BytesMut` 可以避免
+    let domain_bytes = BytesMut::split_to(&mut buf, len);
+    let domain = String::from_utf8_lossy(&domain_bytes).to_string();
     println!("domain: {}", domain);
 
-    return Ok((domain, port));
+    // if buf.has_remaining() {
+    //     // buf should be empty
+    // }
+
+    Ok((domain, port))
 }
 
 async fn ws_accept(tcp_stream: TcpStream) -> Option<WebSocketStream<TcpStream>> {
@@ -151,5 +154,23 @@ async fn ws_accept(tcp_stream: TcpStream) -> Option<WebSocketStream<TcpStream>> 
             error!("Error during the websocket handshake occurred, err: {}", e);
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_request_header_test() {
+        let request_header_data = vec![
+            0, 80, // port 80
+            0, 0,
+            0x0, 0x4, 122, 46, 99, 110, // "z.cn"
+        ];
+
+        let (domain, port) = decode_request_header(&request_header_data).unwrap();
+        assert_eq!(domain, "z.cn");
+        assert_eq!(port, 80);
     }
 }

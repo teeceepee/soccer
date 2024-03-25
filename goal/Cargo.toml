@@ -8,7 +8,6 @@ edition = "2018"
 dns = { version = "0.1.0", path = "../dns" }
 transfer = { version = "0.1.0", path = "../transfer" }
 
-byteorder = { workspace = true }
 bytes = { workspace = true }
 env_logger = { workspace = true }
 futures = { workspace = true }

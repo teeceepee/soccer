@@ -346,7 +346,6 @@ checksum = "0e4075386626662786ddb0ec9081e7c7eeb1ba31951f447ca780ef9f5d568189"
 name = "goal"
 version = "0.1.0"
 dependencies = [
- "byteorder",
  "bytes",
  "dns",
  "env_logger",
