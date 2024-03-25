@@ -117,7 +117,34 @@ fn decode_request_header(request_header: &[u8]) -> std::io::Result<(String, u16)
 }
 
 async fn ws_accept(tcp_stream: TcpStream) -> Option<WebSocketStream<TcpStream>> {
-    match tokio_tungstenite::accept_async(tcp_stream).await {
+    use http::Response as HttpResponse;
+    use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
+
+    let callback = |req: &Request, resp: Response| {
+        // req 示例:
+        // Request { method: GET, uri: /goal, version: HTTP/1.1,
+        //     headers: {
+        //         "host": "127.0.0.1:18030",
+        //         "connection": "Upgrade",
+        //         "upgrade": "websocket",
+        //         "sec-websocket-version": "13",
+        //         "sec-websocket-key": "4qua2jXK9gwaSWDVWZZ8Ow=="
+        //     },
+        //     body: ()
+        // }
+        let path = req.uri().path();
+        if path == "/goal" {
+            Ok(resp)
+        } else {
+            let err_resp = HttpResponse::builder()
+                .status(404)
+                .body(None)
+                .unwrap();
+            Err(err_resp)
+        }
+    };
+
+    match tokio_tungstenite::accept_hdr_async(tcp_stream, callback).await {
         Ok(ws_stream) => {
             Some(ws_stream)
         }

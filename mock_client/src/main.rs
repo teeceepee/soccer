@@ -2,11 +2,14 @@ extern crate tokio;
 
 use std::error::Error;
 use std::net::SocketAddr;
+use log::info;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let _ = env_logger::try_init();
+
     let soccer_address = "127.0.0.1:8080".to_string();
     let addr = soccer_address.parse::<SocketAddr>()?;
     // 1. connects to the server
@@ -38,18 +41,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let http_req = [
         "GET / HTTP/1.1\r\n",
         "Host: z.cn\r\n",
-        "User-Agent: curl/7.88.1\r\n",
+        "User-Agent: curl/7.37.0\r\n",
         "Accept: */*\r\n",
         "\r\n",
     ];
     let r = http_req.concat();
     soccer_stream.write_all(r.as_bytes()).await?;
 
-    // TODO receive response
-
     let mut buf = vec![0; 1000];
-
     loop {
+        info!("Waiting data from soccer...");
         match soccer_stream.read(&mut buf).await {
             Ok(0) => {
                 println!("Ok(0)");
@@ -60,8 +61,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 let s = String::from_utf8_lossy(&buf[0..n]);
                 println!("{}", s);
             }
-            Err(_) => {
-                println!("soccer_stream.read err: Err(_)");
+            Err(e) => {
+                println!("soccer_stream.read err: {}", e);
                 break
             }
         }

@@ -361,6 +361,7 @@ dependencies = [
  "dns",
  "env_logger",
  "futures",
+ "http",
  "log",
  "tokio",
  "tokio-tungstenite",
@@ -477,6 +478,8 @@ dependencies = [
 name = "mock_client"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
+ "log",
  "tokio",
 ]
 

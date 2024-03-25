@@ -10,7 +10,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::Message;
 use std::error::Error;
 use std::net::SocketAddr;
-use log::info;
+use log::{error, info};
 
 use soccer::Destination;
 
@@ -47,8 +47,19 @@ async fn process(mut client_socket: TcpStream, goal_addr: String) {
 
     send_reply(&mut client_socket).await.unwrap();
 
-    let addr = ["ws://".to_string(), goal_addr].join("");
-    let (goal_stream, _resp) = tokio_tungstenite::connect_async(addr).await.unwrap();
+    let addr = ["ws://".to_string(), goal_addr, "/goal".to_string()].join("");
+
+    // WebSocket handshake
+    let ret = tokio_tungstenite::connect_async(addr).await;
+    // 如果请求的路径与 goal 端的要求一致（比如 "/goal"），那么 goal 端会返回 101 Switching Protocols 相应
+    // 如果不一致，那么 goal 端会返回 404 相应，此时只能终止处理流程
+    if ret.is_err() {
+        error!("Failed to connect to soccer, err: {:?}", ret);
+        return;
+    }
+
+    let (goal_stream, _resp) = ret.unwrap();
+    println!("resp: {:?}", _resp);
     let (mut goal_write, goal_read) = goal_stream.split();
     let (client_read, client_write) = client_socket.into_split();
 
