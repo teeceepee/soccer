@@ -86,13 +86,13 @@ fn encode_request_header(remote_dst: &Destination) -> Vec<u8> {
     let mut buf: Vec<u8> = Vec::with_capacity(100);
 
     // 2 bytes, port
-    buf.put_u16_be(remote_dst.port());
+    buf.put_u16(remote_dst.port());
 
     // 2 bytes, reserved
-    buf.put_u16_be(0);
+    buf.put_u16(0);
 
     // 2 bytes, domain length
-    buf.put_u16_be(remote_dst.address().len() as u16);
+    buf.put_u16(remote_dst.address().len() as u16);
 
     // n bytes, domain
     for &b in remote_dst.address() {
