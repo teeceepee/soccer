@@ -4,7 +4,7 @@ mod encode;
 pub mod tcp_accept;
 
 use futures::{future, Sink, SinkExt, Stream, StreamExt};
-use log::debug;
+use log::{debug, error};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::{Error, Message};
@@ -17,23 +17,31 @@ where
     W: AsyncWrite + Unpin,
 {
     while let Some(msg_ret) = StreamExt::next(&mut ws_read).await {
-        let msg = msg_ret.unwrap();
-        match msg {
-            Message::Text(cmd) => {
-                if cmd == "half_close" {
-                    debug!("Received half_close command from ws");
-                    break
+        match msg_ret {
+            Ok(msg) => {
+                match msg {
+                    Message::Text(cmd) => {
+                        if cmd == "half_close" {
+                            debug!("Received half_close command from ws");
+                            break
+                        }
+                    }
+                    Message::Binary(payload) => {
+                        AsyncWriteExt::write_all(&mut tcp_write, &payload).await.unwrap();
+                    }
+                    Message::Close(_) => {
+                        debug!("Closed by CLOSE message");
+                        break
+                    }
+                    unknown_msg => {
+                        debug!("Closed by UNKNOWN message, {:?}", unknown_msg);
+                        break
+                    }
                 }
             }
-            Message::Binary(payload) => {
-                AsyncWriteExt::write_all(&mut tcp_write, &payload).await.unwrap();
-            }
-            Message::Close(_) => {
-                debug!("Closed by CLOSE message");
-                break
-            }
-            unknown_msg => {
-                debug!("Closed by UNKNOWN message, {:?}", unknown_msg);
+            Err(e) => {
+                // Protocol(ResetWithoutClosingHandshake)
+                error!("Failed to receive WebSocket message, err: {:?}", e);
                 break
             }
         }
@@ -77,8 +85,15 @@ where
     }
 
     let half_close_msg = Message::text("half_close");
-    // Os { code: 32, kind: BrokenPipe, message: "Broken pipe" }
-    SinkExt::send(&mut ws_write, half_close_msg).await.unwrap();
+    match SinkExt::send(&mut ws_write, half_close_msg).await {
+        Ok(_) => {},
+        Err(e) => {
+            // 可能的错误：
+            // AlreadyClosed
+            // Os { code: 32, kind: BrokenPipe, message: "Broken pipe" }
+            error!("Failed to send 'half_close' message, err: {:?}", e);
+        }
+    }
 
     println!("tcp_to_ws finished");
 }
