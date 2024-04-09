@@ -12,12 +12,22 @@ use std::io::{Cursor, Read};
 use std::net::{SocketAddr};
 use futures::{SinkExt, StreamExt};
 use tokio_tungstenite::tungstenite::Message;
+use tracing::level_filters::LevelFilter;
+use tracing::Subscriber;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::util::SubscriberInitExt;
 
 mod resolve;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let _ = env_logger::try_init();
+    let filter = EnvFilter::builder()
+        .parse_lossy("trace,tokio=debug,tokio_tungstenite=debug,tungstenite=debug");
+    let subscriber = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        // .with_max_level(tracing::level_filters::LevelFilter::DEBUG)
+        .finish();
+    subscriber.init();
 
     let addr = std::env::args().nth(1).unwrap_or("0.0.0.0:18030".to_string());
     let address: SocketAddr = addr.parse::<SocketAddr>()?;
@@ -27,7 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(&address)
         .await
         .expect("监听失败 Failed to bind");
-    info!("Listening on: {}, pid: {}", address, std::process::id());
+    tracing::info!("Listening on: {}, pid: {}", address, std::process::id());
 
     loop {
         let (soccer_socket, soccer_addr) = match transfer::tcp_accept::tcp_accept(&listener).await {
