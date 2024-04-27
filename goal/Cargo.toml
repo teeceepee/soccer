@@ -5,7 +5,7 @@ authors = ["Yu Haidong"]
 edition = "2018"
 
 [dependencies]
-dns = { version = "0.1.0", path = "../dns" }
+domain-name-actor = { version = "0.1.0", path = "../domain-name-actor" }
 transfer = { version = "0.1.0", path = "../transfer" }
 
 bytes = { workspace = true }

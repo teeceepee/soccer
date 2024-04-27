@@ -190,6 +190,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain-name-actor"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "dns",
+ "tokio",
+]
+
+[[package]]
 name = "env_filter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -348,7 +358,7 @@ name = "goal"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "dns",
+ "domain-name-actor",
  "env_logger",
  "futures",
  "http",

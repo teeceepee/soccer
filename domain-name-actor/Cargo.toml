@@ -1,0 +1,12 @@
+[package]
+name = "domain-name-actor"
+version = "0.1.0"
+authors = ["Yu Haidong"]
+edition = "2018"
+
+[dependencies]
+dns = { version = "0.1.0", path = "../dns" }
+
+byteorder = { workspace = true }
+bytes = { workspace = true }
+tokio = { workspace = true }

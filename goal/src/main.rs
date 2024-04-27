@@ -11,8 +11,8 @@ use std::net::{SocketAddr};
 use futures::{StreamExt};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
+use domain_name_actor::resolve;
 
-mod resolve;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -73,6 +73,7 @@ async fn process(soccer_socket: TcpStream) {
     // 解析目标域名和目标端口
     let (dest_domain, dest_port) = decode_request_header(&request_header).unwrap();
 
+    // let dest_ip_addr = domain_name_actor::resolve::resolve_domain(&dest_domain).await.unwrap();
     let dest_ip_addr = resolve::resolve_domain(&dest_domain).await.unwrap();
 
     let dest_addr = SocketAddr::new(dest_ip_addr, dest_port);

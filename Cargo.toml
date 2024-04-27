@@ -2,6 +2,7 @@
 
 members = [
     "dns",
+    "domain-name-actor",
     "goal",
     "mock_client",
     "soccer",
