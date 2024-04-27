@@ -2,6 +2,7 @@ use crate::utils::qname_to_domain;
 use byteorder::{ReadBytesExt, BE};
 use std::io::{BufRead, Cursor};
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct ResourceRecord {
     domain: String,

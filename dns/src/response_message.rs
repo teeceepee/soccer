@@ -3,6 +3,7 @@ use crate::question::Question;
 use crate::resource_record::ResourceRecord;
 use std::io::Cursor;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct ResponseMessage {
     header: Header,

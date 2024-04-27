@@ -2,18 +2,13 @@ extern crate tokio;
 extern crate tokio_tungstenite;
 
 use bytes::{Buf, BytesMut};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::WebSocketStream;
 
-use log::{error, info, warn};
+use log::{error, info};
 use std::error::Error;
-use std::io::{Cursor, Read};
 use std::net::{SocketAddr};
-use futures::{SinkExt, StreamExt};
-use tokio_tungstenite::tungstenite::Message;
-use tracing::level_filters::LevelFilter;
-use tracing::Subscriber;
+use futures::{StreamExt};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
 
