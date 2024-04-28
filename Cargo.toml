@@ -2,7 +2,7 @@
 
 members = [
     "dns",
-    "dns-types",
+    "domain-name-query-types",
     "domain-name-actor",
     "goal",
     "mock_client",

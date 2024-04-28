@@ -11,8 +11,7 @@ use std::net::{SocketAddr};
 use futures::{StreamExt};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
-use dns_types::NameQuery;
-
+use domain_name_query_types::NameQuery;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -76,7 +75,7 @@ async fn process(soccer_socket: TcpStream, domain_name_handle: domain_name_actor
     let (dest_domain, dest_port) = decode_request_header(&request_header).unwrap();
 
     // TODO 域名没有 A 记录时如何处理 curl: (6) Could not resolve host: qwertyuiop.cn
-    let dest_ip_addr = domain_name_handle.query(NameQuery::new_a(dest_domain.as_str())).await.unwrap();
+    let dest_ip_addr = domain_name_handle.query(NameQuery::a_record(dest_domain.as_str())).await.unwrap();
 
     let dest_addr = SocketAddr::new(dest_ip_addr, dest_port);
     println!("Resolved dest_addr: {}", dest_addr);

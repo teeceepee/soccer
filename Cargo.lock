@@ -190,20 +190,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "dns-types"
-version = "0.1.0"
-
-[[package]]
 name = "domain-name-actor"
 version = "0.1.0"
 dependencies = [
  "byteorder",
  "bytes",
  "dns",
- "dns-types",
+ "domain-name-query-types",
  "tokio",
  "tracing",
 ]
+
+[[package]]
+name = "domain-name-query-types"
+version = "0.1.0"
 
 [[package]]
 name = "env_filter"
@@ -364,8 +364,8 @@ name = "goal"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "dns-types",
  "domain-name-actor",
+ "domain-name-query-types",
  "env_logger",
  "futures",
  "http",

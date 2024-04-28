@@ -1,6 +1,6 @@
 use std::net::{IpAddr};
 use tokio::sync::{mpsc, oneshot};
-use dns_types::NameQuery;
+use domain_name_query_types::NameQuery;
 use crate::resolve;
 use crate::result_cache::ResultCache;
 
@@ -112,7 +112,7 @@ impl ActorHandle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dns_types::NameQuery;
+    use domain_name_query_types::NameQuery;
 
     #[tokio::test]
     async fn test_foo() {
@@ -127,7 +127,7 @@ mod tests {
             } else {
                 String::from("baidu.com")
             };
-            let name_query = NameQuery::new_a(name.as_str());
+            let name_query = NameQuery::a_record(name.as_str());
 
             tokio::spawn(async move {
                 let ret = handle.query(name_query).await;

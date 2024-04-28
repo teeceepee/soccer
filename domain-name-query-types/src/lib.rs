@@ -29,7 +29,7 @@ pub struct NameQuery {
 }
 
 impl NameQuery {
-    pub fn new_a(name_str: &str) -> Self {
+    pub fn a_record(name_str: &str) -> Self {
         Self {
             name: Name::from(name_str),
             q_type: QType::A,
