@@ -1,6 +1,8 @@
 use tokio::net::UdpSocket;
 
 pub async fn resolve_domain(domain: &str) -> std::io::Result<std::net::IpAddr> {
+    tracing::debug!("resolve_domain, domain: {}", domain);
+
     let request_bytes = dns::encode_request(domain).unwrap();
 
     let local_addr = "0.0.0.0:0";

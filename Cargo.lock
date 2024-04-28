@@ -190,13 +190,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dns-types"
+version = "0.1.0"
+
+[[package]]
 name = "domain-name-actor"
 version = "0.1.0"
 dependencies = [
  "byteorder",
  "bytes",
  "dns",
+ "dns-types",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -358,6 +364,7 @@ name = "goal"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "dns-types",
  "domain-name-actor",
  "env_logger",
  "futures",

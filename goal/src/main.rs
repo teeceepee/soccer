@@ -11,7 +11,7 @@ use std::net::{SocketAddr};
 use futures::{StreamExt};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
-use domain_name_actor::resolve;
+use dns_types::NameQuery;
 
 
 #[tokio::main]
@@ -34,6 +34,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .expect("监听失败 Failed to bind");
     tracing::info!("Listening on: {}, pid: {}", address, std::process::id());
 
+    let domain_name_handle = domain_name_actor::actor::ActorHandle::new();
+
     loop {
         let (soccer_socket, soccer_addr) = match transfer::tcp_accept::tcp_accept(&listener).await {
             Some(conn) => conn,
@@ -41,11 +43,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         info!("Accept a connection from {}", soccer_addr);
-        tokio::spawn(process(soccer_socket));
+        tokio::spawn(process(soccer_socket, domain_name_handle.clone()));
     }
 }
 
-async fn process(soccer_socket: TcpStream) {
+async fn process(soccer_socket: TcpStream, domain_name_handle: domain_name_actor::actor::ActorHandle) {
     let mut ws = match ws_accept(soccer_socket).await {
         Some(ws_stream) => ws_stream,
         None => return,
@@ -73,8 +75,8 @@ async fn process(soccer_socket: TcpStream) {
     // 解析目标域名和目标端口
     let (dest_domain, dest_port) = decode_request_header(&request_header).unwrap();
 
-    // let dest_ip_addr = domain_name_actor::resolve::resolve_domain(&dest_domain).await.unwrap();
-    let dest_ip_addr = resolve::resolve_domain(&dest_domain).await.unwrap();
+    // TODO 域名没有 A 记录时如何处理 curl: (6) Could not resolve host: qwertyuiop.cn
+    let dest_ip_addr = domain_name_handle.query(NameQuery::new_a(dest_domain.as_str())).await.unwrap();
 
     let dest_addr = SocketAddr::new(dest_ip_addr, dest_port);
     println!("Resolved dest_addr: {}", dest_addr);

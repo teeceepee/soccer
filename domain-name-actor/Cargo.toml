@@ -6,7 +6,9 @@ edition = "2018"
 
 [dependencies]
 dns = { version = "0.1.0", path = "../dns" }
+dns-types = { version = "0.1.0", path = "../dns-types" }
 
 byteorder = { workspace = true }
 bytes = { workspace = true }
+tracing = { workspace = true }
 tokio = { workspace = true }
