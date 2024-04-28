@@ -74,8 +74,14 @@ async fn process(soccer_socket: TcpStream, domain_name_handle: domain_name_actor
     // 解析目标域名和目标端口
     let (dest_domain, dest_port) = decode_request_header(&request_header).unwrap();
 
-    // TODO 域名没有 A 记录时如何处理 curl: (6) Could not resolve host: qwertyuiop.cn
-    let dest_ip_addr = domain_name_handle.query(NameQuery::a_record(dest_domain.as_str())).await.unwrap();
+    let dest_ip_addr_ret = domain_name_handle.query(NameQuery::a_record(dest_domain.as_str())).await;
+
+    if dest_ip_addr_ret.is_none() {
+        // TODO DNS 没有查找到不属于协议错误，应该用其他方式告知客户端
+        // "Could not resolve host"
+        return;
+    }
+    let dest_ip_addr = dest_ip_addr_ret.unwrap();
 
     let dest_addr = SocketAddr::new(dest_ip_addr, dest_port);
     println!("Resolved dest_addr: {}", dest_addr);

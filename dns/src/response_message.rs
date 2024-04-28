@@ -82,3 +82,19 @@ impl ResponseMessage {
         }).collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_no_answers() {
+        // response of "z.cnn"
+        let resp = &[
+            209, 183, 129, 131, 0, 1, 0, 0, 0, 1, 0, 0, // header
+            1, 122, 3, 99, 110, 110, 0, 0, 1, 0, 1, 0, 0, 6, 0, 1, 0, 0, 2, 58, 0, 64, 1, 97, 12, 114, 111, 111, 116, 45, 115, 101, 114, 118, 101, 114, 115, 3, 110, 101, 116, 0, 5, 110, 115, 116, 108, 100, 12, 118, 101, 114, 105, 115, 105, 103, 110, 45, 103, 114, 115, 3, 99, 111, 109, 0, 120, 164, 113, 48, 0, 0, 7, 8, 0, 0, 3, 132, 0, 9, 58, 128, 0, 1, 81, 128];
+
+        let resp = ResponseMessage::parse_response(resp).unwrap();
+        assert_eq!(None, resp.first_address());
+    }
+}

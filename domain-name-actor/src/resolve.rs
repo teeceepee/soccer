@@ -1,27 +1,55 @@
+use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
+use bytes::BytesMut;
 use tokio::net::UdpSocket;
 
-pub async fn resolve_domain(domain: &str) -> std::io::Result<std::net::IpAddr> {
-    tracing::debug!("resolve_domain, domain: {}", domain);
+// https://datatracker.ietf.org/doc/html/rfc1035#section-4.2.1
+//
+// Messages carried by UDP are restricted to 512 bytes (not counting the IP
+// or UDP headers).
+const MAX_RESPONSE_SIZE: usize = 512;
+
+pub async fn resolve_domain(domain: &str) -> std::io::Result<Option<IpAddr>> {
+    tracing::debug!("resolving domain: {}", domain);
 
     let request_bytes = dns::encode_request(domain).unwrap();
 
-    let local_addr = "0.0.0.0:0";
+    let local_addr = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0);
     // let remote_addr = "1.1.1.1:53";
     let remote_addr = "114.114.114.114:53";
     let sock = UdpSocket::bind(local_addr).await?;
 
     let _send_size = sock.send_to(&request_bytes, remote_addr).await?;
 
-    let mut resp_buf = [0u8; 1000];
-    let response_size = sock.recv(&mut resp_buf).await?;
-
+    let mut resp_buf = BytesMut::with_capacity(MAX_RESPONSE_SIZE);
+    let response_size = sock.recv_buf(&mut resp_buf).await?;
     let response_bytes = &resp_buf[0..response_size];
+    tracing::debug!("received udp response, length: {}, {:?}", response_size, response_bytes);
 
     let resp = dns::decode_response(response_bytes)?;
 
-    let last_addr = resp.last_address().unwrap();
+    match resp.last_address() {
+        None => {
+            tracing::debug!("received udp response has no answers");
+            Ok(None)
+        }
+        Some(addr) => {
+            tracing::debug!("received udp response has {} answers", resp.addresses().len());
+            let ip_addr = std::net::IpAddr::from(std::net::Ipv4Addr::from(addr));
+            Ok(Some(ip_addr))
+        }
+    }
+}
 
-    let ip_addr = std::net::IpAddr::from(std::net::Ipv4Addr::from(last_addr));
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    Ok(ip_addr)
+    #[tokio::test]
+    async fn test_resolve() {
+        let ret1 = resolve_domain("z.cn").await;
+        assert!(ret1.unwrap().is_some());
+
+        let ret2 = resolve_domain("qwertyuiop.cn").await;
+        assert!(ret2.unwrap().is_none());
+    }
 }

@@ -46,7 +46,7 @@ impl Actor {
                 let f = || {
                     tokio::spawn(async move {
                         let ret = match resolve::resolve_domain(name_query.name.as_str()).await {
-                            Ok(r) => { Some(r) }
+                            Ok(op_ip_addr) => { op_ip_addr }
                             Err(_) => { None }
                         };
 
