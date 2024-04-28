@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
 use bytes::BytesMut;
 use tokio::net::UdpSocket;
 
@@ -8,17 +8,15 @@ use tokio::net::UdpSocket;
 // or UDP headers).
 const MAX_RESPONSE_SIZE: usize = 512;
 
-pub async fn resolve_domain(domain: &str) -> std::io::Result<Option<IpAddr>> {
+pub async fn resolve_domain(server_addr: SocketAddr, domain: &str) -> std::io::Result<Option<IpAddr>> {
     tracing::debug!("resolving domain: {}", domain);
 
     let request_bytes = dns::encode_request(domain).unwrap();
 
     let local_addr = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0);
-    // let remote_addr = "1.1.1.1:53";
-    let remote_addr = "114.114.114.114:53";
     let sock = UdpSocket::bind(local_addr).await?;
 
-    let _send_size = sock.send_to(&request_bytes, remote_addr).await?;
+    let _send_size = sock.send_to(&request_bytes, server_addr).await?;
 
     let mut resp_buf = BytesMut::with_capacity(MAX_RESPONSE_SIZE);
     let response_size = sock.recv_buf(&mut resp_buf).await?;
@@ -46,10 +44,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_resolve() {
-        let ret1 = resolve_domain("z.cn").await;
+        let server_addr = "114.114.114.114:53".parse().unwrap();
+        let ret1 = resolve_domain(server_addr,"z.cn").await;
         assert!(ret1.unwrap().is_some());
 
-        let ret2 = resolve_domain("qwertyuiop.cn").await;
+        let ret2 = resolve_domain(server_addr,"qwertyuiop.cn").await;
         assert!(ret2.unwrap().is_none());
     }
 }

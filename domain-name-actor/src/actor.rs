@@ -1,4 +1,4 @@
-use std::net::{IpAddr};
+use std::net::{IpAddr, SocketAddr};
 use tokio::sync::{mpsc, oneshot};
 use domain_name_query_types::NameQuery;
 use crate::resolve;
@@ -21,15 +21,20 @@ struct Actor {
     receiver: mpsc::Receiver<ActorMessage>,
     self_handle: ActorHandle,
 
+    // immutable state
+    server_addr: SocketAddr,
+
     result_cache: ResultCache<NameQuery>,
     counter: u64,
 }
 
 impl Actor {
-    pub fn new(receiver: mpsc::Receiver<ActorMessage>, handle: ActorHandle) -> Self {
+    pub fn new(receiver: mpsc::Receiver<ActorMessage>, handle: ActorHandle, server_addr: SocketAddr) -> Self {
         Self {
             receiver,
             self_handle: handle,
+
+            server_addr,
 
             result_cache: ResultCache::new(),
             counter: 0,
@@ -43,9 +48,10 @@ impl Actor {
                 let nq = name_query.clone();
 
                 let self_handle = self.self_handle.clone();
+                let server_addr = self.server_addr;
                 let f = || {
                     tokio::spawn(async move {
-                        let ret = match resolve::resolve_domain(name_query.name.as_str()).await {
+                        let ret = match resolve::resolve_domain(server_addr, name_query.name.as_str()).await {
                             Ok(op_ip_addr) => { op_ip_addr }
                             Err(_) => { None }
                         };
@@ -75,10 +81,10 @@ pub struct ActorHandle {
 }
 
 impl ActorHandle {
-    pub fn new() -> Self {
+    pub fn new(server_addr: SocketAddr) -> Self {
         let (sender, receiver) = mpsc::channel(10);
         let handle = Self { sender };
-        let actor = Actor::new(receiver, handle.clone());
+        let actor = Actor::new(receiver, handle.clone(), server_addr);
         tokio::spawn(run_as_actor(actor));
 
         handle
@@ -116,7 +122,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_foo() {
-        let handle = ActorHandle::new();
+        let handle = ActorHandle::new("114.114.114.114:53".parse().unwrap());
 
 
         let tasks = (0..5).map(|i| {

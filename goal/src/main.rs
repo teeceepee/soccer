@@ -8,7 +8,7 @@ use tokio_tungstenite::WebSocketStream;
 use log::{error, info};
 use std::error::Error;
 use std::net::{SocketAddr};
-use futures::{StreamExt};
+ use futures::{StreamExt};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
 use domain_name_query_types::NameQuery;
@@ -23,6 +23,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .finish();
     subscriber.init();
 
+    // goal config
+    // let dns_server_addr = "1.1.1.1:53".parse::<SocketAddr>()?;
+    let dns_server_addr = "114.114.114.114:53".parse::<SocketAddr>()?;
+
     let addr = std::env::args().nth(1).unwrap_or("0.0.0.0:18030".to_string());
     let address: SocketAddr = addr.parse::<SocketAddr>()?;
 
@@ -33,7 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .expect("监听失败 Failed to bind");
     tracing::info!("Listening on: {}, pid: {}", address, std::process::id());
 
-    let domain_name_handle = domain_name_actor::actor::ActorHandle::new();
+    let domain_name_handle = domain_name_actor::actor::ActorHandle::new(dns_server_addr);
 
     loop {
         let (soccer_socket, soccer_addr) = match transfer::tcp_accept::tcp_accept(&listener).await {
