@@ -1,0 +1,8 @@
+[server]
+#ip_address = "0.0.0.0"
+ip_address = "127.0.0.1"
+port = 18080
+
+[dns]
+#server_address = "1.1.1.1:53"
+server_address = "114.114.114.114:53"

@@ -21,9 +21,7 @@ struct Actor {
     receiver: mpsc::Receiver<ActorMessage>,
     self_handle: ActorHandle,
 
-    // immutable state
     server_addr: SocketAddr,
-
     result_cache: ResultCache<NameQuery>,
     counter: u64,
 }

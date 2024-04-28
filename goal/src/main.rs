@@ -11,6 +11,7 @@ use std::net::{SocketAddr};
  use futures::{StreamExt};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
+use configuration::{GoalConfiguration};
 use domain_name_query_types::NameQuery;
 
 #[tokio::main]
@@ -23,21 +24,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .finish();
     subscriber.init();
 
-    // goal config
-    // let dns_server_addr = "1.1.1.1:53".parse::<SocketAddr>()?;
-    let dns_server_addr = "114.114.114.114:53".parse::<SocketAddr>()?;
+    let config_path = "./goal_config.toml";
+    let goal_config = configuration::get_config::<GoalConfiguration>(config_path).unwrap();
+    tracing::debug!("goal configuration: {:?}", goal_config);
 
-    let addr = std::env::args().nth(1).unwrap_or("0.0.0.0:18030".to_string());
-    let address: SocketAddr = addr.parse::<SocketAddr>()?;
+    let bind_address: SocketAddr = goal_config.server.bind_address();
 
     // 可能的错误提示：
     // 监听端口失败: Os { code: 48, kind: AddrInUse, message: "Address already in use" }
-    let listener = TcpListener::bind(&address)
+    let listener = TcpListener::bind(&bind_address)
         .await
         .expect("监听失败 Failed to bind");
-    tracing::info!("Listening on: {}, pid: {}", address, std::process::id());
+    tracing::info!("Listening on: {}, pid: {}", bind_address, std::process::id());
 
-    let domain_name_handle = domain_name_actor::actor::ActorHandle::new(dns_server_addr);
+    let dns_configuration = goal_config.dns;
+    let domain_name_handle = domain_name_actor::actor::ActorHandle::new(dns_configuration.server_address);
 
     loop {
         let (soccer_socket, soccer_addr) = match transfer::tcp_accept::tcp_accept(&listener).await {
