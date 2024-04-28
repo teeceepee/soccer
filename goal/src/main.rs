@@ -13,6 +13,7 @@ use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt;
 use configuration::{GoalConfiguration};
 use domain_name_query_types::NameQuery;
+use goal::cli_args::CliArgs;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -24,7 +25,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .finish();
     subscriber.init();
 
-    let config_path = "./goal_config.toml";
+    let args: CliArgs = argh::from_env();
+    tracing::debug!("Command line arguments: {:?}", args);
+
+    let config_path = args.config;
     let goal_config = configuration::get_config::<GoalConfiguration>(config_path).unwrap();
     tracing::debug!("goal configuration: {:?}", goal_config);
 

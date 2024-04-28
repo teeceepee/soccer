@@ -10,6 +10,7 @@ domain-name-query-types = { version = "0.1.0", path = "../domain-name-query-type
 domain-name-actor = { version = "0.1.0", path = "../domain-name-actor" }
 transfer = { version = "0.1.0", path = "../transfer" }
 
+argh = { workspace = true }
 bytes = { workspace = true }
 config = { workspace = true }
 env_logger = { workspace = true }

@@ -1,9 +1,11 @@
 use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
 use serde::Deserialize;
 
-pub fn get_config<'de, T: Deserialize<'de>>(config_path: &str) -> Result<T, config::ConfigError> {
+pub fn get_config<'de, T: Deserialize<'de>>(config_path: PathBuf) -> Result<T, config::ConfigError> {
+    let f = config::File::from(config_path);
     let config = config::Config::builder()
-        .add_source(config::File::with_name(config_path))
+        .add_source(f)
         .build()
         .unwrap();
     config.try_deserialize::<T>()
